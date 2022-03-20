@@ -69,6 +69,7 @@ static unbounded_int* newUnbound(){
 //Insertion d'un numéro c dans la liste l
 static void push(char c, unbounded_int* l){
 
+    if(l==NULL) return;
     if(l->premier==NULL){
         //Mise à jour de unbounded int
         l->premier=newChiffre(c);
@@ -85,6 +86,24 @@ static void push(char c, unbounded_int* l){
         l->dernier->precedent=tmp;
     }
 
+    l->len++;
+    
+}
+
+//Insertion d'un numéro c dans la liste l en première position
+static void enfile(char c, unbounded_int* l){
+
+    if(l==NULL) return;
+    if(l->premier==NULL){
+        //Mise à jour de unbounded int
+        l->premier=newChiffre(c);
+        l->dernier=l->premier;
+    } else {
+        chiffre* tmp=newChiffre(c);
+        tmp->suivant=l->premier;
+        l->premier->precedent=tmp;
+        l->premier=tmp;
+    }
     l->len++;
     
 }
@@ -130,10 +149,14 @@ static char* ll2string(long long i){
 //FONCTIONS A IMPLEMENTER
 
 
-unbounded_int* string2unbouded_int( const char *e ){
+unbounded_int string2unbouded_int( const char *e ){
 
     //On vérifie que la chaîne soit bien une représentation d'un nombre
-    if(len(e)==0 || isNumber(e)==0) return NULL;
+    if(len(e)==0 || isNumber(e)==0){
+        unbounded_int* ret=newUnbound();
+        ret->signe='*';
+        return *ret;
+    }
 
     //On initialise un unbounded_int
     unbounded_int* ret=newUnbound();
@@ -149,10 +172,10 @@ unbounded_int* string2unbouded_int( const char *e ){
     }
 
     //On renvoie le résultat
-    return ret;
+    return *ret;
 }
 
-unbounded_int* ll2unbounded_int (long long i){
+unbounded_int ll2unbounded_int (long long i){
 
     //On convertit le long long en chaîne de caractères
     char* num=ll2string(i);
@@ -217,8 +240,44 @@ int unbounded_int_cmp_unbounded_int(unbounded_int a, unbounded_int b){
 int unbounded_int_cmp_ll(unbounded_int a, long long b){
 
     //On transforme le long long en unbounded int, puis on utilise la fonction précédente
-    unbounded_int* c=ll2unbounded_int(b);
-    return unbounded_int_cmp_unbounded_int(a,*c);
+    unbounded_int c=ll2unbounded_int(b);
+    return unbounded_int_cmp_unbounded_int(a,c);
+}
+
+unbounded_int* unbounded_int_somme(unbounded_int a, unbounded_int b){
+
+    //Pour l'instant je focus l'add. sur entiers naturels
+
+    //On vérifie que les nombre ne soient pas vides
+    if(a.premier==NULL || b.premier==NULL) return NULL;
+
+    //On initialise le retour
+    unbounded_int* ret=newUnbound();
+    if(ret==NULL) return NULL;
+    ret->signe='+';
+
+    //On itère sur les unbounded int en arrière
+    chiffre *ta= a.dernier;
+    chiffre *tb= b.dernier;
+    int retenue=0;
+    for(; ta!=NULL && tb!=NULL; ta=ta->precedent, tb=tb->precedent ){
+        int resLocalGen=((ta->c-'0')+(tb->c-'0'));
+        int resLocal=resLocalGen%10;
+        enfile((resLocal+retenue)+'0',ret);
+        retenue=resLocalGen/10;
+    }
+
+    //Lorsqu'un nombre arrive à sa fin, alors on continue à ajouter les unités les plus grandes
+    for(;ta!=NULL;ta=ta->precedent){
+        enfile((((ta->c-'0')+retenue)+'0'),ret);
+        retenue=0;
+    }
+    for(;tb!=NULL;tb=tb->precedent){
+        enfile((((tb->c-'0')+retenue)+'0'),ret);
+        retenue=0;
+    }
+
+    return ret;
 }
 
 //MAIN
@@ -226,20 +285,23 @@ int unbounded_int_cmp_ll(unbounded_int a, long long b){
 int main(void){
 
     //Tests
-    unbounded_int* test1=string2unbouded_int("-4");
-    printUnbound(*test1,0);
-    printUnbound(*test1,0);
-    printUnbound(*test1,0);
+    unbounded_int test1=string2unbouded_int("390");
+    printUnbound(test1,0);
+    printUnbound(test1,0);
+    printUnbound(test1,0);
     
-    unbounded_int* test2=ll2unbounded_int(-8);
-    printUnbound(*test2,0);
+    unbounded_int test2=ll2unbounded_int(39);
+    printUnbound(test2,0);
     
-    char* test3=unbounded_int2string(*test2);
-    char* test3bis=unbounded_int2string(*test1);
+    char* test3=unbounded_int2string(test2);
+    char* test3bis=unbounded_int2string(test1);
     printf("%s\n",test3);
     printf("%s\n",test3bis);
 
-    printf("Comparaison 1: %d\n", unbounded_int_cmp_unbounded_int(*test2,*test1));
+    printf("Comparaison 1: %d\n", unbounded_int_cmp_unbounded_int(test2,test1));
 
-    printf("Comparaison 2: %d\n", unbounded_int_cmp_ll(*test2,-8));
+    printf("Comparaison 2: %d\n", unbounded_int_cmp_ll(test2,-8));
+
+    unbounded_int* add=unbounded_int_somme(test1,test2);
+    printUnbound(*add, 0);
 }
