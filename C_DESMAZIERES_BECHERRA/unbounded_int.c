@@ -129,6 +129,8 @@ static void printUnbound(unbounded_int l, int debug){
 //Pour transformer un long long i en chaîne de caractères
 static char* ll2string(long long i){
 
+    if(i==0) return "0";
+
     double log=log10(abs(i));
     int Ilen=(int)log;
 
@@ -143,6 +145,7 @@ static char* ll2string(long long i){
 
 //Renvoie un unbounded int avec le signe *
 static unbounded_int err(){
+    printf("Erreur\n");
     unbounded_int* ret=newUnbound();
     ret->signe='*';
     return *ret;
@@ -174,7 +177,7 @@ unbounded_int string2unbouded_int( const char *e ){
     }
 
     //On tronque les 0 au début du nombre
-    while(*e=='0' && *e!='\0'){
+    while(*e=='0' && *e!='\0' && *(e+1)!='\0'){
         e++;
     }
 
@@ -268,6 +271,7 @@ int unbounded_int_cmp_ll(unbounded_int a, long long b){
 
 //Déclaration de la différence
 unbounded_int unbounded_int_difference( unbounded_int a, unbounded_int b);
+
 unbounded_int unbounded_int_somme(unbounded_int a, unbounded_int b){
 
     //Cas généraux des signes
@@ -290,11 +294,11 @@ unbounded_int unbounded_int_somme(unbounded_int a, unbounded_int b){
     //Ensuite le cas où les deux entiers sont positifs
 
     //On vérifie que les nombre ne soient pas vides
-    if(a.premier==NULL || b.premier==NULL) return err();
+    if(a.premier==NULL || b.premier==NULL) { printf("erreur somme vide\n"); return err(); }
 
     //On initialise le retour
     unbounded_int* ret=newUnbound();
-    if(ret==NULL) return err();
+    if(ret==NULL) { printf("Erreur somme"); return err();} 
     ret->signe='+';
 
     //On itère sur les unbounded int en arrière
@@ -402,17 +406,81 @@ unbounded_int unbounded_int_difference( unbounded_int a, unbounded_int b){
     return *ret;
 }
 
+unbounded_int unbounded_int_produit( unbounded_int a, unbounded_int b){
+
+    //On vérifie que les nombre ne soient pas vides
+    if(a.premier==NULL || b.premier==NULL){
+        printf("Erreur nbr vide");
+        return err();
+    }
+
+    //Si un des deux nombres est égla à 0, on renvoie simplement 0
+    if(a.premier->c=='0' || b.premier->c=='0'){
+        return string2unbouded_int("0");
+    } 
+
+    //On intialise le retour
+    unbounded_int* ret=newUnbound();
+    if(ret==NULL){
+        printf("Erreur ret");  
+        return err();
+    } 
+    push('0',ret);
+
+    //Ensuite on itère sur b
+    int dec=0;
+    for(chiffre *tb=b.dernier ; tb!=NULL; tb=tb->precedent){
+
+        //On initialise le nombre temporaire dans la multiplication
+        unbounded_int* tmp=newUnbound();
+        if(tmp==NULL){
+            printf("Erreur tmp");
+            return err();
+        } 
+
+        //On enfile 'dec' 0 de decalage
+        for(int i=0;i<dec;i++){
+            enfile('0',tmp);
+        }
+
+        //Puis on itère sur a
+        int retenue=0;
+        for(chiffre *ta=a.dernier; ta!=NULL; ta=ta->precedent){
+            int resLocalGen=retenue+(ta->c-'0')*(tb->c-'0');
+            int resLocal=resLocalGen%10;
+            enfile((resLocal+'0'),tmp);
+            retenue=resLocalGen/10;
+        }
+        
+        //Ensuite on enfile la retenue
+        enfile((retenue+'0'),tmp);
+        
+        //On incrémente le décalage
+        dec++;
+
+        //Et on ajoute le resultat au nombre de retour
+        *ret=unbounded_int_somme(*ret,*tmp);
+        free(tmp);
+    }
+
+    //Le signe est enfin déterminé par a et b
+    if(a.signe==b.signe) ret->signe='+';
+    else ret->signe='-';
+
+    return *ret;
+}
+
 //MAIN
 
 int main(void){
 
     //Tests
-    unbounded_int test1=string2unbouded_int("25");
+    unbounded_int test1=string2unbouded_int("0");
     printUnbound(test1,0);
     printUnbound(test1,0);
     printUnbound(test1,0);
     
-    unbounded_int test2=ll2unbounded_int(100);
+    unbounded_int test2=ll2unbounded_int(-45235);
     printUnbound(test2,0);
     
     char* test3=unbounded_int2string(test2);
@@ -420,13 +488,20 @@ int main(void){
     printf("%s\n",test3);
     printf("%s\n",test3bis);
 
+    printf("---------------------------------\n\n");
     printf("Comparaison 1: %d\n", unbounded_int_cmp_unbounded_int(test2,test1));
 
     printf("Comparaison 2: %d\n", unbounded_int_cmp_ll(test2,-8));
+    printf("---------------------------------\n\n");
 
     unbounded_int add=unbounded_int_somme(test1,test2);
     printUnbound(add, 0);
+    printf("---------------------------------\n\n");
 
     unbounded_int subs=unbounded_int_difference(test1,test2);
     printUnbound(subs,0);
+    printf("---------------------------------\n\n");
+
+    unbounded_int mult=unbounded_int_produit(test1,test2);
+    printUnbound(mult,0);
 }
