@@ -141,6 +141,13 @@ static char* ll2string(long long i){
     return ret;
 }
 
+//Renvoie un unbounded int avec le signe *
+static unbounded_int err(){
+    unbounded_int* ret=newUnbound();
+    ret->signe='*';
+    return *ret;
+}
+
 
 
 
@@ -173,9 +180,7 @@ unbounded_int string2unbouded_int( const char *e ){
 
     //Si le nombre est vide, alors il y a une erreur
     if(*e=='\0'){
-        unbounded_int* retErr=newUnbound();
-        retErr->signe='*';
-        return *retErr;
+        return err();
     }
 
     //On insère tous les caractères du nombre dans la liste
@@ -238,6 +243,11 @@ int unbounded_int_cmp_unbounded_int(unbounded_int a, unbounded_int b){
     if(a.signe=='-' && b.signe=='-'){
         ret=-1; ret2=1;
     }
+
+    //Ensuite on compare les longueurs des nombres
+    if(a.len>b.len) return ret;
+    if(a.len<b.len) return ret2;
+    
     
     //Si ce n'est pas le cas, alors on itère et on compare
     chiffre *ta= a.premier;
@@ -256,16 +266,35 @@ int unbounded_int_cmp_ll(unbounded_int a, long long b){
     return unbounded_int_cmp_unbounded_int(a,c);
 }
 
-unbounded_int* unbounded_int_somme(unbounded_int a, unbounded_int b){
+//Déclaration de la différence
+unbounded_int unbounded_int_difference( unbounded_int a, unbounded_int b);
+unbounded_int unbounded_int_somme(unbounded_int a, unbounded_int b){
 
-    //Pour l'instant je focus l'add. sur entiers naturels
+    //Cas généraux des signes
+    if(a.signe=='-' && b.signe=='-'){
+        a.signe='+'; b.signe='+';
+        unbounded_int ret=unbounded_int_somme(a,b);
+        if(ret.signe=='+') ret.signe='-';
+        else if(ret.signe=='-') ret.signe='+';
+        return ret;
+    }
+    if(a.signe=='+' && b.signe=='-'){
+        b.signe='+';
+        return unbounded_int_difference(a,b);
+    }
+    if(a.signe=='-' && b.signe=='+'){
+        a.signe='+';
+        return unbounded_int_difference(b,a);
+    }
+
+    //Ensuite le cas où les deux entiers sont positifs
 
     //On vérifie que les nombre ne soient pas vides
-    if(a.premier==NULL || b.premier==NULL) return NULL;
+    if(a.premier==NULL || b.premier==NULL) return err();
 
     //On initialise le retour
     unbounded_int* ret=newUnbound();
-    if(ret==NULL) return NULL;
+    if(ret==NULL) return err();
     ret->signe='+';
 
     //On itère sur les unbounded int en arrière
@@ -294,7 +323,83 @@ unbounded_int* unbounded_int_somme(unbounded_int a, unbounded_int b){
     }
     if(ta==NULL && tb==NULL && retenue!=0) enfile(retenue+'0',ret);
 
-    return ret;
+    return *ret;
+}
+
+unbounded_int unbounded_int_difference( unbounded_int a, unbounded_int b){
+
+    //Cas généraux des signes
+    if(a.signe=='-' && b.signe=='-'){
+        a.signe='+'; b.signe='+';
+        return unbounded_int_difference(b,a);
+    }
+    if(a.signe=='+' && b.signe=='-'){
+        b.signe='+';
+        return unbounded_int_somme(a,b);
+    }
+    if(a.signe=='-' && b.signe=='+'){
+        a.signe='+';
+        unbounded_int ret=unbounded_int_somme(b,a);
+        if(ret.signe=='+') ret.signe='-';
+        else if(ret.signe=='-') ret.signe='+';
+        return ret;
+    }
+    //Cas où a<b
+    if(unbounded_int_cmp_unbounded_int(a,b)==-1){
+        unbounded_int ret=unbounded_int_difference(b,a);
+        if(ret.signe=='+') ret.signe='-';
+        else if(ret.signe=='-') ret.signe='+';
+        return ret;
+    }
+
+    //Ensuite, le cas a>b>0
+
+    //On vérifie que les nombre ne soient pas vides
+    if(a.premier==NULL || b.premier==NULL) return err();
+
+    
+    //On initialise le retour
+    unbounded_int* ret=newUnbound();
+    if(ret==NULL) return err();
+    ret->signe='+';
+
+    //On itère sur les unbounded int en arrière
+    chiffre *ta= a.dernier;
+    chiffre *tb= b.dernier;
+    int retenue=0;
+    for(; ta!=NULL && tb!=NULL; ta=ta->precedent, tb=tb->precedent ){
+        int resLocalGen=((ta->c-'0')-(tb->c-'0'))+retenue;
+        if(resLocalGen<0){
+            resLocalGen+=10;
+            retenue=-1;
+        } else retenue=0;
+        
+        enfile((resLocalGen)+'0',ret);
+    }
+
+    //Lorsqu'un nombre arrive à sa fin, alors on ajoute simplement les chiffres restants de a
+    for(;ta!=NULL;ta=ta->precedent){
+        int resLocalGen=(ta->c-'0')+retenue;
+        if(resLocalGen<0){
+            resLocalGen+=10;
+            retenue=-1;
+        } else retenue=0;
+        enfile((resLocalGen)+'0',ret);
+    }
+
+    //On tronque les 0 au début du nombre (en place)
+    if(ret->premier->c=='0'){
+        for(chiffre* c=ret->premier;c!=NULL;c=c->suivant){
+            if(c->c=='0' && c->suivant!=NULL){
+                ret->premier=c->suivant;
+                ret->premier->precedent=NULL;
+                ret->len--;
+            }
+        }
+    }
+   
+
+    return *ret;
 }
 
 //MAIN
@@ -302,12 +407,12 @@ unbounded_int* unbounded_int_somme(unbounded_int a, unbounded_int b){
 int main(void){
 
     //Tests
-    unbounded_int test1=string2unbouded_int("499915161618866");
+    unbounded_int test1=string2unbouded_int("25");
     printUnbound(test1,0);
     printUnbound(test1,0);
     printUnbound(test1,0);
     
-    unbounded_int test2=ll2unbounded_int(564846153);
+    unbounded_int test2=ll2unbounded_int(100);
     printUnbound(test2,0);
     
     char* test3=unbounded_int2string(test2);
@@ -319,6 +424,9 @@ int main(void){
 
     printf("Comparaison 2: %d\n", unbounded_int_cmp_ll(test2,-8));
 
-    unbounded_int* add=unbounded_int_somme(test1,test2);
-    printUnbound(*add, 0);
+    unbounded_int add=unbounded_int_somme(test1,test2);
+    printUnbound(add, 0);
+
+    unbounded_int subs=unbounded_int_difference(test1,test2);
+    printUnbound(subs,0);
 }
