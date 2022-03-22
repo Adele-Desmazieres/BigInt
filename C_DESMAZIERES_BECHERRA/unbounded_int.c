@@ -164,7 +164,19 @@ unbounded_int string2unbouded_int( const char *e ){
     //On regarde le signe du nombre
     if(*e=='-'){
         ret->signe='-'; e++;
-    } 
+    }
+
+    //On tronque les 0 au début du nombre
+    while(*e=='0' && *e!='\0'){
+        e++;
+    }
+
+    //Si le nombre est vide, alors il y a une erreur
+    if(*e=='\0'){
+        unbounded_int* retErr=newUnbound();
+        retErr->signe='*';
+        return *retErr;
+    }
 
     //On insère tous les caractères du nombre dans la liste
     for(; *e!='\0';e++){
@@ -261,21 +273,26 @@ unbounded_int* unbounded_int_somme(unbounded_int a, unbounded_int b){
     chiffre *tb= b.dernier;
     int retenue=0;
     for(; ta!=NULL && tb!=NULL; ta=ta->precedent, tb=tb->precedent ){
-        int resLocalGen=((ta->c-'0')+(tb->c-'0'));
+        int resLocalGen=((ta->c-'0')+(tb->c-'0'))+retenue;
         int resLocal=resLocalGen%10;
-        enfile((resLocal+retenue)+'0',ret);
+        enfile((resLocal)+'0',ret);
         retenue=resLocalGen/10;
     }
 
     //Lorsqu'un nombre arrive à sa fin, alors on continue à ajouter les unités les plus grandes
     for(;ta!=NULL;ta=ta->precedent){
-        enfile((((ta->c-'0')+retenue)+'0'),ret);
-        retenue=0;
+        int resLocalGen=(ta->c-'0')+retenue;
+        int resLocal=resLocalGen%10;
+        enfile((resLocal)+'0',ret);
+        retenue=resLocalGen/10;
     }
     for(;tb!=NULL;tb=tb->precedent){
-        enfile((((tb->c-'0')+retenue)+'0'),ret);
-        retenue=0;
+        int resLocalGen=(tb->c-'0')+retenue;
+        int resLocal=resLocalGen%10;
+        enfile((resLocal)+'0',ret);
+        retenue=resLocalGen/10;
     }
+    if(ta==NULL && tb==NULL && retenue!=0) enfile(retenue+'0',ret);
 
     return ret;
 }
@@ -285,12 +302,12 @@ unbounded_int* unbounded_int_somme(unbounded_int a, unbounded_int b){
 int main(void){
 
     //Tests
-    unbounded_int test1=string2unbouded_int("390");
+    unbounded_int test1=string2unbouded_int("499915161618866");
     printUnbound(test1,0);
     printUnbound(test1,0);
     printUnbound(test1,0);
     
-    unbounded_int test2=ll2unbounded_int(39);
+    unbounded_int test2=ll2unbounded_int(564846153);
     printUnbound(test2,0);
     
     char* test3=unbounded_int2string(test2);
