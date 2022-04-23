@@ -3,8 +3,7 @@
 #include <ctype.h>
 #include <math.h>
 #include <string.h>
-#include "unbounded_int.h"
-
+#include "unbounded_int.c"
 
 //A TESTER
 
@@ -23,6 +22,18 @@ typedef struct{
     size_t len;
     nodeVar* first;
 } varList;
+
+
+
+//Affiche la liste des variables
+void printVarList(varList vl){
+    printf("Taille: %lld\n", vl.len);
+    for(nodeVar* tmp=vl.first;tmp!=NULL;tmp=tmp->next){
+        printf("Variable: %s\n", tmp->name);
+        printf("Valeur: ");
+        printUnbound(tmp->value, 0);
+    }
+}
 
 //Constructeur nodeVar avec unbounded int
 nodeVar* newNodeVar(const char* c, unbounded_int val){
@@ -94,7 +105,7 @@ nodeVar* findInList(const char* name, varList l){
 int isCorrectVarName(const char* c){
     //Premier carac != de nombre
     if(isdigit(*c)){
-        printf("Erreur: nom de variable commenceant par un chiffre\n");
+        //printf("Erreur: nom de variable commenceant par un chiffre\n");
         return 0;
     }
     //doit contenir des lettres ou des nombres
@@ -243,71 +254,9 @@ void printErr(char* c){
     printf("Erreur : %s",c);
 }
 
-//TODO
-//Teste et print si jamais le print et correct
-int isCorrectPrint(node* cur, varList* vl){
-        cur=cur->next;
-
-        nodeVar* var;
-        nodeVar* var2;
-        unbounded_int a;
-        unbounded_int b;
-
-        //Si le jeton courant n'est ni un nombre ni une variable
-        if(isNumberStr(cur->token)){
-            a=string2unbounded_int(cur->token);
-            if(a.signe=='*') return 0;
-        } else if (isCorrectVarName(cur->token)){
-            var=findInList(cur->token, *vl);
-            if(var==NULL) return 0;
-        } else return 0;
-        
-
-        //Si il s'agit bien de la fin de la liste alors elle est correcte
-        if(cur->next==NULL) return 1;
-
-        //Sinon on continue pour évaluer l'expression
-        cur=cur->next;
-        char* op=NULL;
-        if(stringEquals(cur->token,"+")) op="+";
-        if(stringEquals(cur->token,"-")) op="-";
-        if(stringEquals(cur->token,"*")) op="*";
-        if(op==NULL) return 0;
-
-        //Si la ligne se finit par un signe alors elle est incorrecte
-        if(cur->next==NULL) return 0;
-        cur=cur->next;
-
-        //On recommence la première étape
-        //Si le jeton courant n'est ni un nombre ni une variable
-        if(isNumberStr(cur->token)){
-            b=string2unbounded_int(cur->token);
-            if(b.signe=='*') return 0;
-        } else if (isCorrectVarName(cur->token)){
-            var2=findInList(cur->token, *vl);
-            if(var2==NULL) return 0;
-        } else return 0;
-
-        //Si il s'agit bien de la fin de la liste alors elle est correcte
-        if(cur->next==NULL) return 1;
-        return 0;
-        
-
-        
-    
-}
-
-//TODO
-//Teste que la stringList l corresponde bien à une ligne CORRECTE de code
-int isCorrectLine(stringList l, varList* vl){
-    node* cur=l.first;
-    
-    //Cas print
-    if(stringEquals(cur->token, "print")) return isCorrectPrint(cur, vl);
-
-    //Cas variable
-    if(isCorrectVarName(cur->token)){
-        char* varName=cur->token;
+//Teste si jamais la ligne correspond à une attribution de variable et insère dans la mémoire mem (varList)
+int isCorrectVarAttrib(node* cur, varList* vl){
+    char* varName=cur->token;
 
         cur=cur->next;
         if(cur==NULL || !stringEquals(cur->token,"=")) return 0;
@@ -389,8 +338,136 @@ int isCorrectLine(stringList l, varList* vl){
             //printf("Hey Hey\n");
             varPush(varName,unbounded_int_produit(*a,*b),vl); return 1;
         } else return 0;
+}
+
+
+
+//Print une variable dans le flot local choisi
+void printVarInFlot(nodeVar* node, FILE* flot){
+    if(flot==NULL || flot==stdout) {
+        printf("%s\n", unbounded_int2string(node->value));
+    } else {
+        fputs(unbounded_int2string(node->value),flot);
+        fputc('\n',flot);
+    }
+}
+//Print un unbounded int dans le flot local choisi
+void printUnbInFlot(unbounded_int ui, FILE* flot){
+    if(flot==NULL || flot==stdout) {
+        printf("%s\n", unbounded_int2string(ui));
+    } else {
+        fputs(unbounded_int2string(ui),flot);
+        fputc('\n',flot);
+    }
+}
+
+//Teste et print si jamais le print et correct
+int isCorrectPrint(node* cur, varList* vl, FILE* flot){
+        cur=cur->next;
+
+        nodeVar* var;
+        nodeVar* var2;
+        unbounded_int a;
+        unbounded_int b;
+
+        //Si le jeton courant n'est ni un nombre ni une variable
+        if(isNumberStr(cur->token)){
+            a=string2unbounded_int(cur->token);
+            if(a.signe=='*') return 0;
+            var=NULL;
+        } else if (isCorrectVarName(cur->token)){
+            var=findInList(cur->token, *vl);
+            if(var==NULL) return 0;
+            a.signe='*';
+        } else return 0;
         
 
+        //Si il s'agit bien de la fin de la liste alors elle est correcte
+        if(cur->next == NULL){
+
+            //On imprime dans le flot choisi
+            if(a.signe == '*'){
+                printVarInFlot(var, flot);
+            } else if (var == NULL){
+                printUnbInFlot(a,flot);
+            }
+            return 1;
+        } 
+
+        //Sinon on continue pour évaluer l'expression
+        cur=cur->next;
+        char* op=NULL;
+        if(stringEquals(cur->token,"+")) op="+";
+        if(stringEquals(cur->token,"-")) op="-";
+        if(stringEquals(cur->token,"*")) op="*";
+        if(op==NULL) return 0;
+
+        //Si la ligne se finit par un signe alors elle est incorrecte
+        if(cur->next==NULL) return 0;
+        cur=cur->next;
+
+        //On recommence la première étape
+        //Si le jeton courant n'est ni un nombre ni une variable
+        if(isNumberStr(cur->token)){
+            b=string2unbounded_int(cur->token);
+            if(b.signe=='*') return 0;
+        } else if (isCorrectVarName(cur->token)){
+            var2=findInList(cur->token, *vl);
+            if(var2==NULL) return 0;
+        } else return 0;
+
+        //Si il s'agit bien de la fin de la liste alors elle est correcte
+        if(cur->next==NULL) {
+            //Puis on nettoie un peu pour avoir les deux valeurs à ajouter
+            if(var==NULL && var2!=NULL){
+                b=(var2->value);
+            }
+            if(var!=NULL && var2==NULL){
+                a=(var->value);
+            }
+            if(var!=NULL && var2!=NULL){
+                a=(var->value);
+                b=(var2->value);
+            }
+
+            //Ensuite on ajoute l'éval de l'expression au resultat
+            unbounded_int res;
+            if(stringEquals(op,"+")){
+                res=unbounded_int_somme(a,b);
+            }
+            else if(stringEquals(op,"-")){
+                res=unbounded_int_difference(a,b);
+            }
+            else if(stringEquals(op,"*")){
+                res=unbounded_int_produit(a,b);
+            } else return 0;
+
+            //On imprime dans le flot choisi
+            printUnbInFlot(res,flot);
+
+            return 1;
+        }
+        return 0;
+}
+
+//TODO urgent
+char* stringList2string(stringList l);
+
+
+
+
+//Teste que la stringList l corresponde bien à une ligne CORRECTE de code
+int isCorrectLine(stringList l, varList* vl, FILE* flot){
+    node* cur=l.first;
+    
+    //Cas print
+    if(stringEquals(cur->token, "print")){
+        return isCorrectPrint(cur, vl, flot);
+    } 
+
+    //Cas variable
+    if(isCorrectVarName(cur->token)){
+        return isCorrectVarAttrib(cur, vl);
     }
 
     //Autre cas? Incorrect
@@ -427,7 +504,7 @@ stringList line2string_list(const char* rawLine){
             //On créé une copie de rawLine dans tmp
             char* tmp=malloc((strlen(rawLine)+1)*sizeof(char));
             strcpy(tmp,rawLine);
-            for(;*tmp!=' ';tmp++){
+            for(;*tmp!=' ' && *tmp!='\n';tmp++){
                 len++;
             }
 
@@ -451,18 +528,140 @@ void printStringList(stringList l){
     printf("\n");
 }
 
-int main(void){
-    char* testLine2String="Test = 85 * 279753354 \n";
-    stringList test1=line2string_list(testLine2String);
-    printStringList(test1);
+char* stringList2string(stringList l){
+
+    //On cherche la longueur du string de retour
+    int totalLen=1;
+    for(node* i=l.first; i!=NULL; i=i->next){
+        totalLen+=strlen(i->token)+1;
+    }
+
+    //Init. du retour
+    char* ret=malloc(sizeof(char)*totalLen);
+    if(ret==NULL){
+        printf("Erreur list2string malloc\n");
+        exit(1);
+    }
+    int retIndex=0;
+
+    //Construction du retour
+    for(node* i=l.first; i!=NULL; i=i->next){
+        for(char* tmp=i->token;*tmp!='\0';tmp++){
+            ret[retIndex++]=*tmp;
+        }
+        ret[retIndex++]=' ';
+    }
+    ret[retIndex++]='\n';
+    ret[retIndex]='\0';
+
+    return ret;
+
+
+}
+
+
+
+int main(int argc, char** argv){
 
     varList* mem=newVarList();
 
-    printf("Est une ligne correcte: %d\n", isCorrectLine(test1, mem));
+    /*//Lecture d'un fichier
+    FILE* input=NULL;
+    FILE* output=NULL;
 
-    char* testLine2String2="Test = Test * 279753354 \n";
+    argc--; argv++;
+    for (int i=0;i<argc;i++){
+        if(stringEquals(argv[i],"-o")){
+            //TODO
+            i++;
+            output=fopen(argv[i],"w");
+        } else if(stringEquals(argv[i],"-i")){
+            i++;
+            if(!stringEquals(argv[i],"")){
+                input=fopen(argv[i],"r");
+                if ( input == NULL ) {
+                    printf( "Impossible d'ouvrir le fichier %s\n", argv[0] );
+                    exit( 0 );
+                }
+            }
+        } else {
+            printf("Arguments incorrects\n");
+            exit(2);
+        }
+    }
+
+    //TODO
+    char stdInput[2048];
+    if(input==NULL){
+        printf("Entrez ligne de code\n");
+        scanf("%s", stdInput);
+        while(!stringEquals("exit",stdInput)){
+            printf("Entrez ligne de code\n");
+            scanf("%s", &stdInput);
+            stringList parsedIn=line2string_list(stdInput);
+            //Puis interpréter la ligne et l'afficher / l'inscrire dans un fichier
+            if(!isCorrectLine(parsedIn,mem, output)){
+                printf("Ligne de code incorrecte\n");
+            }
+        }
+    } else {
+        while ( ! feof( input ) ) {
+            //Lire le fichier
+            fgets(stdInput,2048,input);
+            if(stdInput==NULL){
+                printf("Erreur lecture ligne\n");
+                exit(3);
+            }
+
+            stringList parsedLine=line2string_list(stdInput);
+            //Puis interpréter la ligne et l'afficher / l'inscrire dans un fichier
+        }
+    }*/
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /*char* testLine2String="Test = 3 * 4\n";
+    stringList test1=line2string_list(testLine2String);
+    printStringList(test1);
+
+
+    printf("Est une ligne correcte: %d\n", isCorrectLine(test1, mem, NULL));
+
+
+    char* testLine2String2="Test = Test * 3\n";
     stringList test2=line2string_list(testLine2String2);
     printStringList(test2);
 
-    printf("Est une ligne correcte: %d\n", isCorrectLine(test2, mem));
+    printf("Est une ligne correcte: %d\n", isCorrectLine(test2, mem, NULL));
+
+    //printVarList(*mem);*/
+
+    char* testLine2String3="A = 2 * 85\n";
+    stringList test3=line2string_list(testLine2String3);
+    printStringList(test3);
+
+    printf("Est une ligne correcte: %d\n", isCorrectLine(test3, mem, NULL));
+
+    //printUnbound(findInList("Test",*mem)->value, 0);
+
+    char* testLine2String4="print A * A\n";
+    stringList test4=line2string_list(testLine2String4);
+    printStringList(test4);
+
+    printf("Est une ligne correcte: %d\n", isCorrectLine(test4, mem, NULL));
+
+    printVarList(*mem);
+
 }

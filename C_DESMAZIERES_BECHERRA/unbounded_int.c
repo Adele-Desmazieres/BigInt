@@ -5,6 +5,8 @@
 
 #include "unbounded_int.h"
 
+static unbounded_int err();
+
 
 //FONCTIONS UTILITAIRES
 
@@ -102,7 +104,7 @@ static void printChiffre(chiffre f, int debug){
 
 //Pour imprimer un unbounded int joliement
 void printUnbound(unbounded_int l, int debug){
-	printf("Signe: %c   Longueur: %ld\n", l.signe,l.len);
+	printf("Signe: %c   Longueur: %lld\n", l.signe,l.len);
 	chiffre* tmp=l.premier;
 	for(;tmp!=NULL; tmp=tmp->suivant){
 		printChiffre(*tmp,debug);
@@ -310,6 +312,18 @@ unbounded_int unbounded_int_somme(unbounded_int a, unbounded_int b){
 	}
 	if(ta==NULL && tb==NULL && retenue!=0) enfile(retenue+'0',ret);
 
+	//On tronque les 0 au début du nombre (en place)
+	if(ret->premier->c=='0'){
+		for(chiffre* c=ret->premier;c!=NULL;c=c->suivant){
+			if(c->c!='0') break;
+			if(c->c=='0' && c->suivant!=NULL){
+				ret->premier=c->suivant;
+				ret->premier->precedent=NULL;
+				ret->len--;
+			}
+		}
+	}
+
 	return *ret;
 }
 
@@ -377,6 +391,7 @@ unbounded_int unbounded_int_difference( unbounded_int a, unbounded_int b){
 	//On tronque les 0 au début du nombre (en place)
 	if(ret->premier->c=='0'){
 		for(chiffre* c=ret->premier;c!=NULL;c=c->suivant){
+			if(c->c!='0') break;
 			if(c->c=='0' && c->suivant!=NULL){
 				ret->premier=c->suivant;
 				ret->premier->precedent=NULL;
@@ -449,6 +464,18 @@ unbounded_int unbounded_int_produit( unbounded_int a, unbounded_int b){
 	//Le signe est enfin déterminé par a et b
 	if(a.signe==b.signe) ret->signe='+';
 	else ret->signe='-';
+
+	//On tronque les 0 au début du nombre (en place)
+	if(ret->premier->c=='0'){
+		for(chiffre* c=ret->premier;c!=NULL;c=c->suivant){
+			if(c->c!='0') break;
+			if(c->c=='0' && c->suivant!=NULL){
+				ret->premier=c->suivant;
+				ret->premier->precedent=NULL;
+				ret->len--;
+			}
+		}
+	}
 
 	return *ret;
 }
