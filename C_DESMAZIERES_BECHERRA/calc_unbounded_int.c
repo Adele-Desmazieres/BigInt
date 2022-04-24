@@ -3,6 +3,7 @@
 #include <ctype.h>
 #include <math.h>
 #include <string.h>
+#include <assert.h>
 #include "unbounded_int.c"
 
 //A TESTER
@@ -101,10 +102,11 @@ nodeVar* findInList(const char* name, varList l){
     return NULL;
 }
 
+int isNumberStr(const char* c);
 //Teste si c est bien un nom de variable correct
 int isCorrectVarName(const char* c){
     //Premier carac != de nombre
-    if(isdigit(*c)){
+    if(isdigit(*c) || isNumberStr(c)){
         //printf("Erreur: nom de variable commenceant par un chiffre\n");
         return 0;
     }
@@ -258,9 +260,6 @@ void printErr(char* c){
 int isCorrectVarAttrib(node* cur, varList* vl){
     char* varName=cur->token;
 
-        cur=cur->next;
-        if(cur==NULL || !stringEquals(cur->token,"=")) return 0;
-
         nodeVar* var2=NULL;
         nodeVar* var3=NULL;
         unbounded_int* a=newUnbound();
@@ -276,7 +275,6 @@ int isCorrectVarAttrib(node* cur, varList* vl){
             if(var2==NULL) return 0;
         //Soit un nombre    
         } else if(isNumberStr(cur->token)){
-            //printf("Coucou\n");
             *a=string2unbounded_int(cur->token);
         } else return 0;
         
@@ -497,14 +495,14 @@ stringList line2string_list(const char* rawLine){
     //On parcourt la ligne jusqu'à la fin (bon caractère?)
     while(*rawLine!='\n' && *rawLine!='\0'){
         
-        if(*rawLine!=' '){
+        if(*rawLine!=' ' && *rawLine!='='){
             //On détermine la longueur de la chaîne
             int len=0;
 
             //On créé une copie de rawLine dans tmp
             char* tmp=malloc((strlen(rawLine)+1)*sizeof(char));
             strcpy(tmp,rawLine);
-            for(;*tmp!=' ' && *tmp!='\n';tmp++){
+            for(;*tmp!=' ' && *tmp!='\n' && *tmp!='=';tmp++){
                 len++;
             }
 
@@ -561,63 +559,45 @@ char* stringList2string(stringList l){
 
 
 
-int main(int argc, char** argv){
+
+int main(int argc, char **argv){
 
     varList* mem=newVarList();
 
-    /*//Lecture d'un fichier
-    FILE* input=NULL;
-    FILE* output=NULL;
+    FILE* output = NULL;
+    FILE* input = stdin;
 
-    argc--; argv++;
-    for (int i=0;i<argc;i++){
-        if(stringEquals(argv[i],"-o")){
-            //TODO
-            i++;
-            output=fopen(argv[i],"w");
-        } else if(stringEquals(argv[i],"-i")){
-            i++;
-            if(!stringEquals(argv[i],"")){
-                input=fopen(argv[i],"r");
-                if ( input == NULL ) {
-                    printf( "Impossible d'ouvrir le fichier %s\n", argv[0] );
-                    exit( 0 );
-                }
-            }
-        } else {
-            printf("Arguments incorrects\n");
-            exit(2);
+    //Lecture des arguments
+    int i=1;
+    for(char* tmp=argv[i]; i<argc; i++, tmp=argv[i]){
+        //Selecteur de fichier de sortie
+        if(stringEquals(tmp,"-o") && i+1<argc){
+            output=fopen(argv[i+1],"w");
+            if(output == NULL) perror("Fichier de sortie incorrect"); 
+        }
+        //Selecteur de fichier d'entrée
+        if(stringEquals(tmp,"-i") && i+1<argc){
+            input=fopen(argv[i+1],"r");
+            if(input == NULL) perror("Fichier d'entrée incorrect"); 
         }
     }
 
-    //TODO
-    char stdInput[2048];
-    if(input==NULL){
-        printf("Entrez ligne de code\n");
-        scanf("%s", stdInput);
-        while(!stringEquals("exit",stdInput)){
-            printf("Entrez ligne de code\n");
-            scanf("%s", &stdInput);
-            stringList parsedIn=line2string_list(stdInput);
-            //Puis interpréter la ligne et l'afficher / l'inscrire dans un fichier
-            if(!isCorrectLine(parsedIn,mem, output)){
-                printf("Ligne de code incorrecte\n");
-            }
-        }
-    } else {
-        while ( ! feof( input ) ) {
-            //Lire le fichier
-            fgets(stdInput,2048,input);
-            if(stdInput==NULL){
-                printf("Erreur lecture ligne\n");
-                exit(3);
-            }
 
-            stringList parsedLine=line2string_list(stdInput);
-            //Puis interpréter la ligne et l'afficher / l'inscrire dans un fichier
-        }
-    }*/
 
+    //Lecture de l'entrée
+    char* BUF = malloc(2049*sizeof(char));
+    assert(BUF != NULL);
+    BUF = fgets(BUF,2048,input);
+    while(BUF != NULL) {
+        stringList tmpStrList = line2string_list(BUF);
+        if(!isCorrectLine(tmpStrList,mem,output)){
+            printf("Ligne incorrecte\n");
+        }
+        BUF = fgets(BUF,2048,input);
+    }
+
+    fclose(input);
+    fclose(output);
     
 
 
@@ -630,9 +610,15 @@ int main(int argc, char** argv){
 
 
 
+/* 
 
 
-    /*char* testLine2String="Test = 3 * 4\n";
+TESTS
+
+
+*/
+
+   /*char* testLine2String="Test = 3 * 4\n";
     stringList test1=line2string_list(testLine2String);
     printStringList(test1);
 
@@ -648,7 +634,7 @@ int main(int argc, char** argv){
 
     //printVarList(*mem);*/
 
-    char* testLine2String3="A = 2 * 85\n";
+   /* char* testLine2String3="A = 2 * 85\n";
     stringList test3=line2string_list(testLine2String3);
     printStringList(test3);
 
@@ -662,6 +648,6 @@ int main(int argc, char** argv){
 
     printf("Est une ligne correcte: %d\n", isCorrectLine(test4, mem, NULL));
 
-    printVarList(*mem);
+    printVarList(*mem);*/
 
 }

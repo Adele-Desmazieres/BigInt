@@ -159,6 +159,8 @@ unbounded_int string2unbounded_int( const char *e ){
 	//On regarde le signe du nombre
 	if(*e=='-'){
 		ret->signe='-'; e++;
+	} else if (*e=='+'){
+		ret->signe='+'; e++;
 	}
 
 	//On tronque les 0 au début du nombre
