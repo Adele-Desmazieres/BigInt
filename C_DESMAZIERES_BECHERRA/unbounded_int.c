@@ -19,8 +19,8 @@ static size_t len(const char* c){
 
 //Teste si la chaîne c est un nombre
 static int isNumber(const char* c){
-	if(*c!='-' && !isdigit(*c)) return 0;
-	if(*c=='-'){
+	if(*c!='-' && *c!='+' && !isdigit(*c)) return 0;
+	if(*c=='-' || *c=='+'){
 		c++;
 		if(*c=='\0') return 0;
 	}
@@ -414,7 +414,7 @@ unbounded_int unbounded_int_produit( unbounded_int a, unbounded_int b){
 		return err();
 	}
 
-	//Si un des deux nombres est égla à 0, on renvoie simplement 0
+	//Si un des deux nombres est égal à 0, on renvoie simplement 0
 	if(a.premier->c=='0' || b.premier->c=='0'){
 		return string2unbounded_int("0");
 	} 

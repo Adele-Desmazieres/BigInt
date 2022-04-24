@@ -375,9 +375,14 @@ int isCorrectPrint(node* cur, varList* vl, FILE* flot){
             var=NULL;
         } else if (isCorrectVarName(cur->token)){
             var=findInList(cur->token, *vl);
-            if(var==NULL) return 0;
+            if(var==NULL) {
+                printUnbInFlot(ll2unbounded_int(0),flot);
+                return 1;
+            } 
             a.signe='*';
         } else return 0;
+
+        
         
 
         //Si il s'agit bien de la fin de la liste alors elle est correcte
