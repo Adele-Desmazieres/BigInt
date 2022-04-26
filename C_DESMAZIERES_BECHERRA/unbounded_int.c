@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
+#include <string.h>
 
 #include "unbounded_int.h"
 
@@ -10,15 +11,8 @@ static unbounded_int err();
 
 //FONCTIONS UTILITAIRES
 
-//Renvoie la longueur d'une chaine de caractère
-static size_t len(const char* c){
-	int len=0;
-	for( ; *c!='\0'; c++,len++){} // parcourt de la chaine jusqu'au caractère '\0'
-	return len;
-}
-
 //Teste si la chaîne c est un nombre
-static int isNumber(const char* c){
+static int is_number(const char* c){
 	if(*c!='-' && *c!='+' && !isdigit(*c)) return 0;
 	if(*c=='-' || *c=='+'){
 		c++;
@@ -32,7 +26,7 @@ static int isNumber(const char* c){
 }
 
 //Constructeur de chiffre
-static chiffre* newChiffre(char d){
+static chiffre* new_chiffre(char d){
 	chiffre* ret=malloc(sizeof(chiffre));
 	if(ret==NULL) err();
 	ret->c=d;
@@ -42,7 +36,7 @@ static chiffre* newChiffre(char d){
 }
 
 //Constructeur de unbounded_int
-static unbounded_int* newUnbound(){
+static unbounded_int* new_unbound(){
 	unbounded_int* ret=malloc(sizeof(unbounded_int));
 	if(ret==NULL) err();
 	ret->len=0;
@@ -52,13 +46,13 @@ static unbounded_int* newUnbound(){
 	return ret;
 }
 
-//Insertion d'un numéro c dans la liste l
+//Insertion d'un numéro c dans la liste l en dernière position
 static void push(char c, unbounded_int* l){
 
 	if(l==NULL) return;
 	if(l->premier==NULL){ // si la liste est vide
 		//Mise à jour de unbounded int
-		l->premier=newChiffre(c);
+		l->premier=new_chiffre(c);
 		l->dernier=l->premier;
 	} else {
 		chiffre* tmp=l->premier;
@@ -66,7 +60,7 @@ static void push(char c, unbounded_int* l){
 			tmp=tmp->suivant;
 		}
 		//Mise à jour de la liste ici
-		tmp->suivant=newChiffre(c);
+		tmp->suivant=new_chiffre(c);
 		l->dernier->suivant=tmp->suivant;
 		l->dernier=tmp->suivant;
 		l->dernier->precedent=tmp;
@@ -82,10 +76,10 @@ static void enfile(char c, unbounded_int* l){
 	if(l==NULL) return;
 	if(l->premier==NULL){
 		//Mise à jour de unbounded int
-		l->premier=newChiffre(c);
+		l->premier=new_chiffre(c);
 		l->dernier=l->premier;
 	} else {
-		chiffre* tmp=newChiffre(c);
+		chiffre* tmp=new_chiffre(c);
 		tmp->suivant=l->premier;
 		l->premier->precedent=tmp;
 		l->premier=tmp;
@@ -95,7 +89,7 @@ static void enfile(char c, unbounded_int* l){
 }
 
 //Pour imprimer un chiffre
-static void printChiffre(chiffre f, int debug){
+static void print_chiffre(chiffre f, int debug){
 	printf("%c", f.c);
 	if(debug){
 		printf(" Suivant: %p Precedent: %p\n",f.suivant,f.precedent);
@@ -103,11 +97,11 @@ static void printChiffre(chiffre f, int debug){
 }
 
 //Pour imprimer un unbounded int joliement
-void printUnbound(unbounded_int l, int debug){
-	printf("Signe: %c   Longueur: %lld\n", l.signe,l.len);
+void print_unbound(unbounded_int l, int debug){
+	printf("Signe: %c   Longueur: %ld\n", l.signe,l.len);
 	chiffre* tmp=l.premier;
 	for(;tmp!=NULL; tmp=tmp->suivant){
-		printChiffre(*tmp,debug);
+		print_chiffre(*tmp,debug);
 	}
 	printf("\n");
 }
@@ -130,16 +124,16 @@ static char* ll2string(long long i){
 	return ret;
 }
 
-//Renvoie un unbounded int avec le signe *
+//Fonction d'erreur, renvoie un unbounded int avec le signe *
 static unbounded_int err(){
 	printf("Erreur\n");
-	//unbounded_int* ret = newUnbound();
+
 	unbounded_int* ret = malloc(sizeof(unbounded_int));
 	if (ret == NULL) exit(1); // seul exit du code
+
 	ret->signe='*';
 	return *ret;
 }
-
 
 
 
@@ -151,10 +145,10 @@ static unbounded_int err(){
 unbounded_int string2unbounded_int( const char *e ){
 
 	//On vérifie que la chaîne soit bien une représentation d'un nombre
-	if(len(e)==0 || isNumber(e)==0) return err();
+	if(strlen(e)==0 || is_number(e)==0) return err();
 
 	//On initialise un unbounded_int
-	unbounded_int* ret=newUnbound();
+	unbounded_int* ret=new_unbound();
 
 	//On regarde le signe du nombre
 	if(*e=='-'){
@@ -284,7 +278,7 @@ unbounded_int unbounded_int_somme(unbounded_int a, unbounded_int b){
 	if(a.premier==NULL || b.premier==NULL) { printf("erreur somme vide\n"); return err(); }
 
 	//On initialise le retour
-	unbounded_int* ret=newUnbound();
+	unbounded_int* ret=new_unbound();
 	if(ret==NULL) { printf("Erreur somme"); return err();} 
 	ret->signe='+';
 
@@ -362,7 +356,7 @@ unbounded_int unbounded_int_difference( unbounded_int a, unbounded_int b){
 
 	
 	//On initialise le retour
-	unbounded_int* ret=newUnbound();
+	unbounded_int* ret=new_unbound();
 	if(ret==NULL) return err();
 	ret->signe='+';
 
@@ -420,7 +414,7 @@ unbounded_int unbounded_int_produit( unbounded_int a, unbounded_int b){
 	} 
 
 	//On intialise le retour
-	unbounded_int* ret=newUnbound();
+	unbounded_int* ret=new_unbound();
 	if(ret==NULL){
 		printf("Erreur ret");  
 		return err();
@@ -432,7 +426,7 @@ unbounded_int unbounded_int_produit( unbounded_int a, unbounded_int b){
 	for(chiffre *tb=b.dernier ; tb!=NULL; tb=tb->precedent){
 
 		//On initialise le nombre temporaire dans la multiplication
-		unbounded_int* tmp=newUnbound();
+		unbounded_int* tmp=new_unbound();
 		if(tmp==NULL){
 			printf("Erreur tmp");
 			return err();
