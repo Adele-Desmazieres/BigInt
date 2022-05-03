@@ -89,26 +89,12 @@ void print_varList(varList vl){
     }
 }
 
-/*
-//Teste l'égalité entre deux chaines de caractère
-int string_equals(const char* a, const char* b){
-    if(a==NULL || b==NULL){
-        printf("Erreur comparaison chaine nulle\n"); 
-        return 0;
-    } 
-
-    for(;*a!='\0' && *b!='\0'; a++, b++){
-        if(*a != *b) return 0;
-    }
-    return 1;
-}
-*/
-
 
 //Trouve et renvoie un nodeVar de nom name si il existe dans la liste l, renvoie NULL sinon
 nodeVar* finds_in(varList l, const char* name){
     if (name==NULL){
-        printf("Erreur nom nul\n"); return NULL;
+        //printf("Erreur nom nul\n"); 
+        return NULL;
     } 
 
     for (nodeVar* tmp=l.first; tmp!=NULL; tmp=tmp->next ){
@@ -117,20 +103,7 @@ nodeVar* finds_in(varList l, const char* name){
     return NULL;
 }
 
-/*
-// teste si c correspond à un nombre entier positif ou negatif
-int is_number(const char* c){
-    // le premier caractere doit etre un chiffre ou + ou -
-    if(!isdigit(*c) && *c!='+' && *c!='-') return 0;
-    c++;
-    
-    // tous les autres caractères doivent etre des chiffres
-    for(; *c!='\0'; c++){
-        if(!isdigit(*c)) return 0;
-    }
-    return 1;
-}
-*/
+
 
 // teste si c est bien un nom de variable correct
 // c'est-a-dire commencant par une lettre et contenant que des lettres et chiffres
@@ -274,6 +247,7 @@ stringList* new_stringList(){
     return ret;
 }
 
+
 //Push une chaine de caractère c sur l
 void string_push(const char* c, int len, stringList* l){
     node* noeud=new_node(c, len);
@@ -289,289 +263,6 @@ void string_push(const char* c, int len, stringList* l){
 
     l->len++;
 }
-
-
-// vérifie que l'opération est valide
-// c'est-a-dire composée d'un nbr ou var, puis un opérateur, puis nbr ou var
-// avec des var initialisées
-int is_operation(node* cur, varList* vl) {
-    int i = 0;
-    
-    for (node* tmp = cur; tmp != NULL; tmp = tmp->next) {
-        char* nom = tmp->token;
-        
-        // le cas des operandes (variable initialisée ou nombre)
-        if (i % 2 == 0) {
-            if (!is_number(nom) && !(is_var_name(nom) && finds_in(*vl, nom))) return 0;
-            
-        // le cas des opérateurs
-        } else {
-            int is_operateur = 0;
-            char operateurs[3] = {'+', '-', '*'};
-            int nbr_operateurs = 3;
-            for (int i = 0; i < nbr_operateurs; i++) {
-                char operateur_string[2] = {operateurs[i] , '\0'};
-                if (strcmp(operateur_string, nom) == 0) is_operateur = 1; 
-            }
-            if (is_operateur == 0) return 0;
-        }
-        
-        //if (i > 2) return 0;
-        i++;
-    }
-    
-    // vérifie qu'il n'y a que 3 éléments dans l'opération
-    return (i == 3);
-}
-
-// renvoie l'unbounded_int correspondant au nombre ou à la variable contenue dans le noeud cur
-unbounded_int* evaluer_operande(node* cur, varList* vl) {
-    unbounded_int* ret = new_unbound();
-    if (is_number(cur->token)) *ret = string2unbounded_int(cur->token);
-    else {
-        nodeVar* tmp = finds_in(*vl, cur->token);
-        *ret = tmp->value;
-    }
-    return ret;
-}
-
-// renvoie l'unbouded_int correspondant à l'évaluation d'une opération entre 2 opérandes
-unbounded_int evaluer_operation(node* cur, varList* vl) {
-    node* tmp = cur;
-    
-    unbounded_int operande1 = *evaluer_operande(tmp, vl);
-    tmp = tmp->next;
-    
-    char operateur = tmp->token[0];
-    tmp = tmp->next;
-        
-    unbounded_int operande2 = *evaluer_operande(tmp, vl);
-    
-    if (operateur == '+') return unbounded_int_somme(operande1, operande2);
-    else if (operateur == '-') return unbounded_int_difference(operande1, operande2);
-    else return unbounded_int_produit(operande1, operande2);
-    
-}
-
-
-// execute une commande d'attribution de variable
-// renvoie 1 si réussie, et 0 sinon
-int run_var_attribution(node* cur, varList* vl) {
-    
-    char *var = cur->token; 
-    cur = cur->next;
-        
-    /* A REMETTRE QUAND IL Y AURA LES TOKENS "="
-    // erreur si la variable n'est pas suivi d'un égal
-    if (strcmp(cur->token, "=") != 0) {
-        printf("%s", cur->token);
-        return 0;
-    } 
-    cur = cur->next;
-    */
-    
-    unbounded_int* resultat = new_unbound();
-    
-    // erreur si l'opération à droite du = est invalide
-    if (is_operation(cur, vl) == 1) {
-        printf("opération\n");
-        // sinon l'attribution est réussie
-        *resultat = evaluer_operation(cur, vl);
-    
-    } else if (is_number(cur->token)) {
-        printf("nombre\n");
-        *resultat = string2unbounded_int(cur->token);
-        
-    } else if (is_var_name(cur->token)) {
-        printf("variable\n");
-        *resultat = finds_in(*vl, cur->token)->value;
-        
-    } else {
-        return 0;
-    }
-    
-    var_push(var, *resultat, vl); // push la variable dans la mémoire
-    
-    return 1;
-    
-}
-
-
-//Print une variable dans le flot local choisi
-void print_var_in_flot(nodeVar* node, FILE* flot){
-    if(flot==NULL || flot==stdout) {
-        printf("%s\n", unbounded_int2string(node->value));
-    } else {
-        fputs(unbounded_int2string(node->value),flot);
-        fputc('\n',flot);
-    }
-}
-
-
-//Print un unbounded int dans le flot local choisi
-void print_unbounded_in_flot(unbounded_int ui, FILE* flot){
-    if(flot==NULL || flot==stdout) {
-        printf("%s\n", unbounded_int2string(ui));
-    } else {
-        fputs(unbounded_int2string(ui),flot);
-        fputc('\n',flot);
-    }
-}
-
-
-// vérifie que l'expression commencant par cur est soit un nombre, une var ou une opération valide
-// renvoie 1 si correct, et 0 sinon
-int is_correct_expression(node* cur, varList* vl) {
-    
-    // si un seul token alors soit var soit nombre
-    if (cur->next == NULL) {
-        if (is_var_name(cur->token) || is_number(cur->token)) return 1;
-        else return 0;
-    }
-    
-    // sinon vérifier si l'opération est valide
-    return is_operation(cur, vl);
-}
-
-
-// vérifie que la liste de token correspond à une commande print valide
-// c'est-a-dire "print" suivi par un nombre, ou une variable, ou une opération valide
-// puis affiche le résultat de la commande
-// renvoie 0 en cas d'erreur
-int is_correct_print(node* cur, varList* vl, FILE* flot){
-        cur=cur->next;
-
-        nodeVar* var;
-        nodeVar* var2;
-        unbounded_int a;
-        unbounded_int b;
-
-        //Si le jeton courant n'est ni un nombre ni une variable
-        if(is_number(cur->token)){
-            a=string2unbounded_int(cur->token);
-            if(a.signe=='*') return 0;
-            var=NULL;
-            
-        } else if (is_var_name(cur->token)){
-            var=finds_in(*vl, cur->token);
-            
-            // si c'est une var non initialisée affichage de 0
-            if(var==NULL) {
-                print_unbounded_in_flot(ll2unbounded_int(0),flot);
-                return 1;
-            } 
-            a.signe='*';
-        } else return 0;
-
-        
-        
-
-        //Si il s'agit bien de la fin de la liste alors elle est correcte
-        // affichage de la valeur de var
-        if(cur->next == NULL){
-
-            //On imprime dans le flot choisi
-            if(a.signe == '*'){
-                print_var_in_flot(var, flot);
-            } else if (var == NULL){
-                print_unbounded_in_flot(a,flot);
-            }
-            return 1;
-        } 
-
-        //Sinon on continue pour évaluer l'expression
-        cur=cur->next;
-        char* op=NULL;
-        if(strcmp(cur->token,"+") == 0) op="+";
-        if(strcmp(cur->token,"-") == 0) op="-";
-        if(strcmp(cur->token,"*") == 0) op="*";
-        if(op==NULL) return 0;
-
-        //Si la ligne se finit par un signe alors elle est incorrecte
-        if(cur->next==NULL) return 0;
-        cur=cur->next;
-
-        //On recommence la première étape
-        //Si le jeton courant n'est ni un nombre ni une variable
-        if(is_number(cur->token)){
-            b=string2unbounded_int(cur->token);
-            if(b.signe=='*') return 0;
-        } else if (is_var_name(cur->token)){
-            var2=finds_in(*vl, cur->token);
-            if(var2==NULL) return 0;
-        } else return 0;
-
-        //Si il s'agit bien de la fin de la liste alors elle est correcte
-        if(cur->next==NULL) {
-            //Puis on nettoie un peu pour avoir les deux valeurs à ajouter
-            if(var==NULL && var2!=NULL){
-                b=(var2->value);
-            }
-            if(var!=NULL && var2==NULL){
-                a=(var->value);
-            }
-            if(var!=NULL && var2!=NULL){
-                a=(var->value);
-                b=(var2->value);
-            }
-
-            //Ensuite on ajoute l'éval de l'expression au resultat
-            unbounded_int res;
-            if(strcmp(op,"+") == 0){
-                res=unbounded_int_somme(a,b);
-            }
-            else if(strcmp(op,"-") == 0){
-                res=unbounded_int_difference(a,b);
-            }
-            else if(strcmp(op,"*") == 0){
-                res=unbounded_int_produit(a,b);
-            } else return 0;
-
-            //On imprime dans le flot choisi
-            print_unbounded_in_flot(res, flot);
-
-            return 1;
-        }
-        return 0;
-}
-
-
-
-char* stringList2string(stringList l);
-
-
-
-// Teste que la stringList l corresponde bien à une ligne CORRECTE de code
-// et exécute cette line
-int run_line(stringList l, varList* vl, FILE* flot){
-    node* cur=l.first;
-    
-    //Cas print
-    if(strcmp(cur->token, "print") == 0){
-        return is_correct_print(cur, vl, flot);
-    } 
-
-    //Cas variable
-    if(is_var_name(cur->token)){
-        //printf("true");
-        return run_var_attribution(cur, vl);
-    }
-    
-    //Autre cas incorrect
-    return 0;
-}
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // On transforme une ligne renvoyée par fgets() en stringList d'arguments
@@ -611,12 +302,6 @@ stringList line2stringList(const char* rawLine){
     return *ret;
 }
 
-void print_stringList(stringList l){
-    for(node* i=l.first; i!=NULL; i=i->next){
-        printf("%s ", i->token);
-    }
-    printf("\n");
-}
 
 char* stringList2string(stringList l){
 
@@ -645,9 +330,222 @@ char* stringList2string(stringList l){
     ret[retIndex]='\0';
 
     return ret;
-
-
 }
+
+
+void print_stringList(stringList l){
+    for(node* i=l.first; i!=NULL; i=i->next){
+        printf("%s ", i->token);
+    }
+    printf("\n");
+}
+
+
+// vérifie que l'opération est correcte
+// c'est-a-dire composée d'un nbr ou var, puis un opérateur, puis nbr ou var
+// avec des var initialisées
+int node_is_operation(node* cur, varList* vl) {
+    int i = 0;
+    
+    for (node* tmp = cur; tmp != NULL; tmp = tmp->next) {
+        char* nom = tmp->token;
+        
+        // le cas des operandes (variable initialisée ou nombre)
+        if (i % 2 == 0) {
+            if (!is_number(nom) && !(is_var_name(nom) && finds_in(*vl, nom))) return 0;
+            
+        // le cas des opérateurs
+        } else {
+            int is_operateur = 0;
+            char operateurs[3] = {'+', '-', '*'};
+            int nbr_operateurs = 3;
+            for (int i = 0; i < nbr_operateurs; i++) {
+                char operateur_string[2] = {operateurs[i] , '\0'};
+                if (strcmp(operateur_string, nom) == 0) is_operateur = 1; 
+            }
+            if (is_operateur == 0) return 0;
+        }
+        
+        if (i > 2) return 0; // arrete la boucle si trop d'éléments
+        i++;
+    }
+    
+    // vérifie qu'il n'y a exactement 3 éléments dans l'opération
+    return (i == 3);
+}
+
+
+// renvoie l'unbounded_int correspondant au nombre ou à la variable contenue dans le noeud cur
+unbounded_int* evaluer_operande(node* cur, varList* vl) {
+    unbounded_int* ret = new_unbound();
+    if (is_number(cur->token)) *ret = string2unbounded_int(cur->token);
+    else {
+        nodeVar* tmp = finds_in(*vl, cur->token);
+        *ret = tmp->value;
+    }
+    return ret;
+}
+
+// renvoie l'unbouded_int correspondant à l'évaluation d'une opération avec 2 opérandes
+unbounded_int evaluer_operation(node* cur, varList* vl) {
+    node* tmp = cur;
+    
+    unbounded_int operande1 = *evaluer_operande(tmp, vl);
+    tmp = tmp->next;
+    
+    char operateur = tmp->token[0];
+    tmp = tmp->next;
+        
+    unbounded_int operande2 = *evaluer_operande(tmp, vl);
+    
+    if (operateur == '+') return unbounded_int_somme(operande1, operande2);
+    else if (operateur == '-') return unbounded_int_difference(operande1, operande2);
+    else return unbounded_int_produit(operande1, operande2);
+}
+
+
+// evalue l'expression stockée par cur, et conserve sa valeur dans resultat
+// si flag = 1 alors une variable non-init est évaluée à 0
+// renvoie 1 en cas de réussite et 0 en cas d'échec 
+int evaluer_expression(unbounded_int *resultat, node *cur, varList *vl, int flag) {
+    
+    // vérifie si c'est une opération à droite du =
+    if (node_is_operation(cur, vl) == 1) {
+        //printf("opération\n");
+        // sinon l'attribution est réussie
+        *resultat = evaluer_operation(cur, vl);
+        return 1;
+    
+    // vérifie si c'est un nombre
+    } else if (is_number(cur->token) && cur->next == NULL) {
+        //printf("nombre\n");
+        *resultat = string2unbounded_int(cur->token);
+        return 1;
+        
+    // vérifie si c'est une variable
+    } else if (is_var_name(cur->token) && cur->next == NULL) {
+        //printf("variable\n");
+        
+        // vérifie que la variable est initialisée
+        nodeVar *tmp = new_nodeVar("", *new_unbound());
+        tmp = finds_in(*vl, cur->token);
+        
+        // si la variable est non initialisée
+        if (tmp == NULL) { 
+            //printf("non-initilisée\n");
+            // elle vaut 0 si le flag est levé (=1)
+            if (flag == 1) {
+                *resultat = string2unbounded_int("0");
+                return 1;
+            } 
+            // sinon c'est une erreur
+            else return 0;
+        }
+        
+        // sinon on conserve la valeur de la variable trouvée
+        *resultat = tmp->value; 
+        return 1;    
+    } 
+    
+    else return 0;
+    
+}
+
+
+//Print une variable dans le flot local choisi
+void print_var_in_flot(nodeVar* node, FILE* flot){
+    if(flot==NULL || flot==stdout) {
+        printf("%s\n", unbounded_int2string(node->value));
+    } else {
+        fputs(unbounded_int2string(node->value),flot);
+        fputc('\n',flot);
+    }
+}
+
+
+//Print un unbounded int dans le flot local choisi
+void print_unbounded_in_flot(unbounded_int ui, FILE* flot){
+    if(flot==NULL || flot==stdout) {
+        printf("%s\n", unbounded_int2string(ui));
+    } else {
+        fputs(unbounded_int2string(ui),flot);
+        fputc('\n',flot);
+    }
+}
+
+
+// execute une commande d'attribution de variable
+// qui commence forcément par un nom de variable 
+// renvoie 1 si réussie, et 0 sinon
+int run_var_attribution(node *cur, varList *vl) {
+    
+    char *var = cur->token; // nom de la variable à attribuer
+    //if (!is_var_name(var)) return 0; // vérifié avant l'appel
+    cur = cur->next;
+    if (cur == NULL) return 0;
+        
+    /* A REMETTRE QUAND IL Y AURA LES TOKENS "="
+    // erreur si la variable n'est pas suivi d'un égal
+    if (strcmp(cur->token, "=") != 0) {
+        //printf("%s", cur->token);
+        return 0;
+    } 
+    cur = cur->next;
+    if (cur == NULL) return 0;
+    */
+    
+    unbounded_int* resultat = new_unbound();
+    
+    int evaluation_reussie = evaluer_expression(resultat, cur, vl, 0);
+    if (evaluation_reussie == 0) return 0;
+    
+    var_push(var, *resultat, vl); // push la variable dans la mémoire
+    
+    return 1;
+    
+}
+
+
+// vérifie que la liste de token correspond à une commande print valide
+// c'est-a-dire "print" suivi par un nombre, ou une variable, ou une opération valide
+// puis affiche le résultat de la commande
+// renvoie 0 en cas d'erreur
+int run_print(node* cur, varList* vl, FILE* flot) {
+    if (cur->next == NULL) return 0;
+    
+    cur = cur->next;
+    unbounded_int *resultat = new_unbound();
+    
+    int evaluation_reussie = evaluer_expression(resultat, cur, vl, 1);
+    if (evaluation_reussie == 0) return 0;
+    
+    print_unbounded_in_flot(*resultat, flot);
+    return 1;
+}
+
+
+
+// Teste que la stringList l corresponde bien à une ligne CORRECTE de code
+// et exécute cette line
+int run_line(stringList l, varList* vl, FILE* flot){
+    node* cur=l.first;
+    
+    //Cas print
+    if(strcmp(cur->token, "print") == 0){
+        return run_print(cur, vl, flot);
+    } 
+
+    //Cas variable
+    if(is_var_name(cur->token)){
+        //printf("true");
+        return run_var_attribution(cur, vl);
+    }
+    
+    //Autre cas incorrect
+    return 0;
+}
+
+
 
 
 // 888b     d888          d8b          
@@ -702,23 +600,20 @@ int main(int argc, char **argv){
 
 
 
+ 
+
+    // 88888888888                888             
+    //     888                    888             
+    //     888                    888             
+    //     888   .d88b.  .d8888b  888888 .d8888b  
+    //     888  d8P  Y8b 88K      888    88K      
+    //     888  88888888 "Y8888b. 888    "Y8888b. 
+    //     888  Y8b.          X88 Y88b.       X88 
+    //     888   "Y8888   88888P'  "Y888  88888P' 
 
 
-
-
-
-
-
-
-/* 
-
-
-TESTS
-
-
-*/
-
-   /*char* testLine2String="Test = 3 * 4\n";
+    /*
+    char* testLine2String="Test = 3 * 4\n";
     stringList test1=line2stringList(testLine2String);
     print_stringList(test1);
 
@@ -732,9 +627,11 @@ TESTS
 
     printf("Est une ligne correcte: %d\n", run_line(test2, mem, NULL));
 
-    //printVarList(*mem);*/
+    //printVarList(*mem);
+    */
 
-   /* char* testLine2String3="A = 2 * 85\n";
+    /*
+    char* testLine2String3="A = 2 * 85\n";
     stringList test3=line2stringList(testLine2String3);
     print_stringList(test3);
 
@@ -748,6 +645,7 @@ TESTS
 
     printf("Est une ligne correcte: %d\n", run_line(test4, mem, NULL));
 
-    printVarList(*mem);*/
+    printVarList(*mem);
+    */
 
 }

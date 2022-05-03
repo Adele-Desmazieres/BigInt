@@ -12,7 +12,7 @@ static unbounded_int err();
 //FONCTIONS UTILITAIRES
 
 //Teste si la chaîne c est un nombre
-static int is_number(const char* c){
+int is_number(const char* c){
 	if(*c!='-' && *c!='+' && !isdigit(*c)) return 0;
 	if(*c=='-' || *c=='+'){
 		c++;
