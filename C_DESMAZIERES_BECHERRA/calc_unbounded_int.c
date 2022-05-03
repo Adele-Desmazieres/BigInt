@@ -122,12 +122,7 @@ int is_var_name(const char* c){
     }
     
     // doit etre different des mots clefs de l'interpreteur
-    char motsclefs[] = {"print"};
-    int nbr_motsclefs = 1;
-    for (int i = 0; i < nbr_motsclefs; i++) {
-        char mot = motsclefs[i];
-        if (strcmp(&mot, c) == 0) return 0;    
-    }
+    if (strcmp("print", c) == 0) return 0;
     
     return 1;
 }
@@ -408,44 +403,51 @@ unbounded_int evaluer_operation(node* cur, varList* vl) {
 // si flag = 1 alors une variable non-init est évaluée à 0
 // renvoie 1 en cas de réussite et 0 en cas d'échec 
 int evaluer_expression(unbounded_int *resultat, node *cur, varList *vl, int flag) {
+    if (cur == NULL) return 0;
     
-    // vérifie si c'est une opération à droite du =
-    if (node_is_operation(cur, vl) == 1) {
-        //printf("opération\n");
-        // sinon l'attribution est réussie
-        *resultat = evaluer_operation(cur, vl);
-        return 1;
+    // si expression avec un seul élément, il doit etre un nombre ou une variable
+    if (cur->next == NULL) {
     
-    // vérifie si c'est un nombre
-    } else if (is_number(cur->token) && cur->next == NULL) {
-        //printf("nombre\n");
-        *resultat = string2unbounded_int(cur->token);
-        return 1;
-        
-    // vérifie si c'est une variable
-    } else if (is_var_name(cur->token) && cur->next == NULL) {
-        //printf("variable\n");
-        
-        // vérifie que la variable est initialisée
-        nodeVar *tmp = new_nodeVar("", *new_unbound());
-        tmp = finds_in(*vl, cur->token);
-        
-        // si la variable est non initialisée
-        if (tmp == NULL) { 
-            //printf("non-initilisée\n");
-            // elle vaut 0 si le flag est levé (=1)
-            if (flag == 1) {
-                *resultat = string2unbounded_int("0");
-                return 1;
-            } 
-            // sinon c'est une erreur
-            else return 0;
+        // vérifie si c'est un nombre
+        if (is_number(cur->token)) {
+            //printf("nombre\n");
+            *resultat = string2unbounded_int(cur->token);
+            return 1;
+            
+        // vérifie si c'est une variable
+        } else if (is_var_name(cur->token)) {
+            //printf("variable\n");
+            
+            // vérifie que la variable est initialisée
+            nodeVar *tmp = new_nodeVar("", *new_unbound());
+            tmp = finds_in(*vl, cur->token);
+            
+            // si la variable est non initialisée
+            if (tmp == NULL) { 
+                // elle vaut 0 si le flag est levé (=1)
+                if (flag == 1) {
+                    *resultat = string2unbounded_int("0");
+                    return 1;
+                } 
+                else return 0; // sinon erreur
+            }
+            
+            // sinon var initilisée, on conserve sa valeur
+            *resultat = tmp->value; 
+            return 1;    
         }
         
-        // sinon on conserve la valeur de la variable trouvée
-        *resultat = tmp->value; 
-        return 1;    
-    } 
+        else return 0;
+    }
+    
+    // vérifie si c'est une opération à droite du =
+    else if (node_is_operation(cur, vl) == 1) {
+        //printf("opération\n"s);
+        // évaluer l'opération
+        *resultat = evaluer_operation(cur, vl);
+        return 1; 
+    
+    }
     
     else return 0;
     
