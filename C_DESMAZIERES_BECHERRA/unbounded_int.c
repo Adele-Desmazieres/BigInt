@@ -98,7 +98,7 @@ static void print_chiffre(chiffre f, int debug){
 
 //Pour imprimer un unbounded int joliement
 void print_unbound(unbounded_int l, int debug){
-	printf("Signe: %c   Longueur: %ld\n", l.signe,l.len);
+	printf("Signe: %c   Longueur: %I64lld\n", l.signe,l.len);
 	chiffre* tmp=l.premier;
 	for(;tmp!=NULL; tmp=tmp->suivant){
 		print_chiffre(*tmp,debug);

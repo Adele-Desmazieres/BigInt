@@ -78,10 +78,22 @@ varList* new_varList(){
     return ret;
 }
 
+//Libère la liste de variables
+void supprimer_varList(varList vl){
+    nodeVar* tmp2=NULL;
+    nodeVar* tmp=vl.first;
+    while(tmp!=NULL){
+        tmp2=tmp;
+        tmp=tmp->next;
+        free(tmp2->name);
+        free(tmp2);
+    }
+}
+
 
 //Affiche la liste des variables
 void print_varList(varList vl){
-    printf("Taille : %ld\n", vl.len);
+    printf("Taille : %I64lld\n", vl.len);
     for(nodeVar* tmp=vl.first; tmp!=NULL; tmp=tmp->next){
         printf("Variable : %s\n", tmp->name);
         printf("Valeur : ");
@@ -242,6 +254,18 @@ stringList* new_stringList(){
     return ret;
 }
 
+//Libère la mémoire occupée par la stringList sl
+void supprimer_stringList(stringList sl){
+    node* tmp2=NULL;
+    node* tmp=sl.first;
+    while(tmp!=NULL){
+        tmp2=tmp;
+        tmp=tmp->next;
+        free(tmp2->token);
+        free(tmp2);
+    }
+}
+
 
 //Push une chaine de caractère c sur l
 void string_push(const char* c, int len, stringList* l){
@@ -268,7 +292,7 @@ stringList line2stringList(const char* rawLine){
     stringList* ret=new_stringList();
 
     //On parcourt la ligne jusqu'à la fin (bon caractère?)
-    while(*rawLine!='\n' && *rawLine!='\0'){
+    while(*rawLine!='\n' && *rawLine!='\0' && *rawLine!=EOF){
         
         if(*rawLine!=' ' && *rawLine!='='){
             //On détermine la longueur de la chaine
@@ -569,32 +593,57 @@ int main(int argc, char **argv){
 
     //Lecture des arguments
     int i=1;
-    for(char* tmp=argv[i]; i<argc; i++, tmp=argv[i]){
+    int inputCheck = 0;
+    int outputCheck = 0;
+    while(i < argc){
+
+        // printf("Iteration : %d\n", i);
+        int arg_len = strlen(argv[i])+1;
+        char* tmp = malloc(sizeof(char)*arg_len);
+        if(tmp == NULL) perror("Malloc main incorrect");
+        tmp = strcpy(tmp, argv[i]);
+
         //Selecteur de fichier de sortie
-        if(strcmp(tmp,"-o") == 0 && i+1<argc){
+        if(strcmp(tmp,"-o") == 0 && i+1<argc && !outputCheck){
             output=fopen(argv[i+1],"w");
             if(output == NULL) perror("Fichier de sortie incorrect"); 
+            outputCheck = 1;
         }
         //Selecteur de fichier d'entrée
-        if(strcmp(tmp,"-i") == 0 && i+1<argc){
-            input=fopen(argv[i+1],"r");
-            if(input == NULL) perror("Fichier d'entrée incorrect"); 
+        if(strcmp(tmp,"-i") == 0 && i+1<argc && !inputCheck){
+            // printf("-A\n[%s]\n", argv[i+1]);
+            input = fopen(argv[i+1],"r");
+            if(input == NULL) perror("Fichier d'entrée incorrect");
+            inputCheck = 1; 
         }
+
+
+        free(tmp);
+        i++;
     }
 
-
+    //printf("Analyse des arguments reussie!\n");
 
     //Lecture de l'entrée
-    char* BUF = malloc(2049*sizeof(char));
-    assert(BUF != NULL);
+    char* BUF = malloc(2050*sizeof(char));
+    if(BUF == NULL){
+        printf("Erreur buffer d'entrée\n");
+        exit(3);
+    }
     BUF = fgets(BUF,2048,input);
-    while(BUF != NULL) {
+    while(BUF != NULL && *BUF != EOF) {
+       // printf("Ligne scannee : [%s] \n", BUF);
         stringList tmpStrList = line2stringList(BUF);
+       // print_stringList(tmpStrList);
         if(!run_line(tmpStrList, mem, output)){
             printf("Ligne incorrecte\n");
         }
         BUF = fgets(BUF,2048,input);
+        supprimer_stringList(tmpStrList);
     }
+
+    supprimer_varList(*mem);
+    free(mem);
 
     fclose(input);
     fclose(output);
