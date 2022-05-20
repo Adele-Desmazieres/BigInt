@@ -9,12 +9,12 @@ int main(void){
 
 	//Tests
 	unbounded_int test1=string2unbounded_int("0");
-	print_unbound(test1,0);
-	print_unbound(test1,0);
-	print_unbound(test1,0);
+	print_unbound(test1);
+	print_unbound(test1);
+	print_unbound(test1);
 	
 	unbounded_int test2=ll2unbounded_int(-45235);
-	print_unbound(test2,0);
+	print_unbound(test2);
 	
 	char* test3=unbounded_int2string(test2);
 	char* test3bis=unbounded_int2string(test1);
@@ -28,15 +28,15 @@ int main(void){
 	printf("---------------------------------\n\n");
 
 	unbounded_int add=unbounded_int_somme(test1,test2);
-	print_unbound(add, 0);
+	print_unbound(add);
 	printf("---------------------------------\n\n");
 
 	unbounded_int subs=unbounded_int_difference(test1,test2);
-	print_unbound(subs,0);
+	print_unbound(subs);
 	printf("---------------------------------\n\n");
 
 	unbounded_int mult=unbounded_int_produit(test1,test2);
-	print_unbound(mult,0);
+	print_unbound(mult);
 	
 	return 0;
 }

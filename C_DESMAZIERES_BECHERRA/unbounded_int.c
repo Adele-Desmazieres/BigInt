@@ -11,6 +11,7 @@ static unbounded_int err();
 
 //FONCTIONS UTILITAIRES
 
+// NON STATIC CAR UTILISE DANS CALC_UNBOUNDED_INT
 //Teste si la chaîne c est un nombre
 int is_number(const char* c){
 	if(*c!='-' && *c!='+' && !isdigit(*c)) return 0;
@@ -35,8 +36,9 @@ static chiffre* new_chiffre(char d){
 	return ret;
 }
 
+// NON STATIC CAR UTILISE DANS CALC_UNBOUNDED_INT
 //Constructeur de unbounded_int
-static unbounded_int* new_unbound(){
+unbounded_int* new_unbound(){
 	unbounded_int* ret=malloc(sizeof(unbounded_int));
 	if(ret==NULL) err();
 	ret->len=0;
@@ -89,19 +91,16 @@ static void enfile(char c, unbounded_int* l){
 }
 
 //Pour imprimer un chiffre
-static void print_chiffre(chiffre f, int debug){
+static void print_chiffre(chiffre f){
 	printf("%c", f.c);
-	if(debug){
-		printf(" Suivant: %p Precedent: %p\n",f.suivant,f.precedent);
-	}
 }
 
 //Pour imprimer un unbounded int joliement
-void print_unbound(unbounded_int l, int debug){
-	printf("Signe: %c   Longueur: %I64ld\n", l.signe,l.len);
+void print_unbound(unbounded_int l){
+	printf("Signe: %c   Longueur: %ld\n", l.signe,l.len);
 	chiffre* tmp=l.premier;
 	for(;tmp!=NULL; tmp=tmp->suivant){
-		print_chiffre(*tmp,debug);
+		print_chiffre(*tmp);
 	}
 	printf("\n");
 }

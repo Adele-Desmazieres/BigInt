@@ -5,7 +5,7 @@
 #include <string.h>
 #include <assert.h>
 
-#include "unbounded_int.c"
+#include "unbounded_int.h"
 
 
 // 888b     d888                                 d8b                 
@@ -93,11 +93,11 @@ void supprimer_varList(varList vl){
 
 //Affiche la liste des variables
 void print_varList(varList vl){
-    printf("Taille : %I64ld\n", vl.len);
+    printf("Taille : %ld\n", vl.len);
     for(nodeVar* tmp=vl.first; tmp!=NULL; tmp=tmp->next){
         printf("Variable : %s\n", tmp->name);
         printf("Valeur : ");
-        print_unbound(tmp->value, 0);
+        print_unbound(tmp->value);
     }
 }
 
