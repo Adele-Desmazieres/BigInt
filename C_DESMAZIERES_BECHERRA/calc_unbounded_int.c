@@ -93,7 +93,7 @@ void supprimer_varList(varList vl){
 
 //Affiche la liste des variables
 void print_varList(varList vl){
-    printf("Taille : %I64lld\n", vl.len);
+    printf("Taille : %I64ld\n", vl.len);
     for(nodeVar* tmp=vl.first; tmp!=NULL; tmp=tmp->next){
         printf("Variable : %s\n", tmp->name);
         printf("Valeur : ");
@@ -145,20 +145,14 @@ int is_var_name(const char* c){
 void var_push(const char* name, unbounded_int val, varList* l){
     
     //On vérifie les arguments
-    if(l==NULL || name==NULL ||val.signe=='*'){
-        printf("Erreur liste nulle, nom nul ou nombre incorrect\n"); 
+    if(l==NULL || name==NULL || val.signe=='*' || !is_var_name(name)){
+        //printf("Erreur liste nulle, nom nul ou nombre incorrect\n"); 
         return;
     }
 
-    //On vérifie que la variable ait un nom correct
-    if(!is_var_name(name)){
-        //printf("Raté!\n");
-        return;
-    } 
-
-    nodeVar* tmp=finds_in(*l, name);
-    //printf("%s NULL? %d\n", name,tmp==NULL);
-
+    // recherche la variable
+    nodeVar* tmp = finds_in(*l, name);
+    
     if (tmp != NULL) {
         // la variable existe, on met à jour sa valeur
         tmp->value=val;
@@ -174,7 +168,6 @@ void var_push(const char* name, unbounded_int val, varList* l){
         while(prec->next!=NULL){
             prec = prec->next;
         }
-        //printf("Par ici 2!\n");
         
         prec->next=new_nodeVar(name,val);
         l->len++;
@@ -194,7 +187,7 @@ void var_push(const char* name, unbounded_int val, varList* l){
 
 
 
-//Code pour les listes de string
+// listes de string représentant une commande
 
 //Structure noeud de stringList
 // un entier, une variable, un mot-clef, ou un opérateur
@@ -284,44 +277,74 @@ void string_push(const char* c, int len, stringList* l){
 }
 
 
-// On transforme une ligne renvoyée par fgets() en stringList d'arguments
+// renvoie 1 si "c" est dans le tableau non_token
+// et 0 sinon
+int caractere_vide(char c, char non_token[], int non_tok_len) {
+    int is_token = 0;
+    for (int i = 0; i < non_tok_len; i++) {
+        if (c == non_token[i]) is_token = 1;
+    }
+    return is_token;
+}
+
+// renvoie 1 si le string s est "vide"
+// c'est a dire si s ne contient que des caracteres dans le tableau non_token
+// et 0 sinon
+int ligne_vide(const char* s, char non_token[], int non_tok_len) {
+    while (*s != EOF && *s != '\0') {
+        if (caractere_vide(*s, non_token, non_tok_len) == 0) return 0;
+        s++;
+    }
+    return 1;
+}
+
+
+// transforme une ligne renvoyée par fgets() en stringList
 // sépare les caractères en tokens
-stringList line2stringList(const char* rawLine){
+stringList line2stringList(const char* rawLine, char non_token[], int non_tok_len) {
 
     //On intitialise le retour
-    stringList* ret=new_stringList();
+    stringList* ret = new_stringList();
 
     //On parcourt la ligne jusqu'à la fin (bon caractère?)
-    while(*rawLine!='\n' && *rawLine!='\0' && *rawLine!=EOF){
+    while(*rawLine != '\n' && *rawLine != '\0' && *rawLine != EOF){
+
+        // enregistre les "=" en token meme si il est collé aux variables        
+        if (*rawLine == '=') {
+            string_push("=", 1, ret);
+            rawLine++;
+        }
         
-        if(*rawLine!=' ' && *rawLine!='='){
-            //On détermine la longueur de la chaine
-            int len=0;
-
-            //On créé une copie de rawLine dans tmp
-            char* tmp=malloc((strlen(rawLine)+1)*sizeof(char));
-            strcpy(tmp,rawLine);
-            
-            // calcul de la longueur du token suivant
-            while(*tmp!=' ' && *tmp!='\n' && *tmp!='=' && *tmp!='\0'){
-                len++;
-                tmp++;
-            }
-
+        //On détermine la longueur de la chaine
+        int len=0;
+        
+        //On créé une copie de rawLine dans tmp
+        char* tmp = malloc((strlen(rawLine)+1)*sizeof(char));
+        strcpy(tmp,rawLine);
+                
+        // calcul de la longueur du token suivant
+        //while(*tmp != ' ' && *tmp != '\n' && *tmp != '\0' && *tmp != '\t' && *tmp != '='){
+        while (caractere_vide(*tmp, non_token, non_tok_len) == 0 && *tmp != '=') {
+            len++;
+            tmp++;
+        }
+        
+        if (len > 0) {
             //On ajoute la chaine à la liste
             string_push(rawLine, len, ret);
-
-            //On skip la chaine trouvée pour éviter de créer des immondices
-            rawLine=rawLine+len;
+            
+            //On skip la chaine trouvée, en déplacant le pointeur à la fin
+            rawLine = rawLine+len-1;
         }
-
+            
         rawLine++;
     }
-
+    // printf(" > %s\n", stringList2string(*ret));
     return *ret;
 }
 
 
+// convertit un objet stringList en string, dont les tokens sont séparés par un espace
 char* stringList2string(stringList l){
 
     //On cherche la longueur du string de retour
@@ -424,7 +447,9 @@ unbounded_int evaluer_operation(node* cur, varList* vl) {
 
 
 // evalue l'expression stockée par cur, et conserve sa valeur dans resultat
+// ca peut etre une variable, un nombre ou une opération
 // si flag = 1 alors une variable non-init est évaluée à 0
+// si flag = 0 alors erreur en cas de variable non-init
 // renvoie 1 en cas de réussite et 0 en cas d'échec 
 int evaluer_expression(unbounded_int *resultat, node *cur, varList *vl, int flag) {
     if (cur == NULL) return 0;
@@ -434,26 +459,22 @@ int evaluer_expression(unbounded_int *resultat, node *cur, varList *vl, int flag
     
         // vérifie si c'est un nombre
         if (is_number(cur->token)) {
-            //printf("nombre\n");
             *resultat = string2unbounded_int(cur->token);
             return 1;
             
         // vérifie si c'est une variable
         } else if (is_var_name(cur->token)) {
-            //printf("variable\n");
             
             // vérifie que la variable est initialisée
             nodeVar *tmp = new_nodeVar("", *new_unbound());
             tmp = finds_in(*vl, cur->token);
             
-            // si la variable est non initialisée
-            if (tmp == NULL) { 
-                // elle vaut 0 si le flag est levé (=1)
-                if (flag == 1) {
+            // si la variable est non initialisée 
+            if (tmp == NULL) {
+                if (flag == 1) { // elle vaut 0 si le flag est levé (=1)
                     *resultat = string2unbounded_int("0");
                     return 1;
-                } 
-                else return 0; // sinon erreur
+                } else return 0; // sinon erreur
             }
             
             // sinon var initilisée, on conserve sa valeur
@@ -464,17 +485,14 @@ int evaluer_expression(unbounded_int *resultat, node *cur, varList *vl, int flag
         else return 0;
     }
     
-    // vérifie si c'est une opération à droite du =
+    // vérifie si l'expression est une opération
     else if (node_is_operation(cur, vl) == 1) {
-        //printf("opération\n"s);
         // évaluer l'opération
         *resultat = evaluer_operation(cur, vl);
         return 1; 
-    
     }
     
     else return 0;
-    
 }
 
 
@@ -510,7 +528,7 @@ int run_var_attribution(node *cur, varList *vl) {
     cur = cur->next;
     if (cur == NULL) return 0;
         
-    /* A REMETTRE QUAND IL Y AURA LES TOKENS "="
+    // A REMETTRE QUAND IL Y AURA LES TOKENS "="
     // erreur si la variable n'est pas suivi d'un égal
     if (strcmp(cur->token, "=") != 0) {
         //printf("%s", cur->token);
@@ -518,7 +536,6 @@ int run_var_attribution(node *cur, varList *vl) {
     } 
     cur = cur->next;
     if (cur == NULL) return 0;
-    */
     
     unbounded_int* resultat = new_unbound();
     
@@ -572,6 +589,25 @@ int run_line(stringList l, varList* vl, FILE* flot){
 }
 
 
+// affiche les caractères spéciaux d'un string
+void traitement_chaine(char *s) {
+    printf(" > ");
+    char *tmp = s;
+    while (*tmp != '\0') {
+        if (*tmp == '\n') printf("\\n");
+        else if (*tmp == '\0') printf("\\0");
+        else if (*tmp == '\t') printf("\\t");
+        else if (*tmp == ' ') printf("_");
+        //else if (tmp == NULL) printf("NULL");
+        else printf("%c", *tmp);
+        tmp++;
+    }
+    
+    if (*tmp == '\0') printf("\\0");
+    else printf("\\?");
+    printf("\n");
+}
+
 
 
 // 888b     d888          d8b          
@@ -586,7 +622,7 @@ int run_line(stringList l, varList* vl, FILE* flot){
 
 int main(int argc, char **argv){
 
-    varList* mem=new_varList();
+    varList* mem = new_varList(); // initialisation de la mémoire
 
     FILE* output = NULL;
     FILE* input = stdin;
@@ -595,7 +631,11 @@ int main(int argc, char **argv){
     int i=1;
     int inputCheck = 0;
     int outputCheck = 0;
-    while(i < argc){
+    
+    // tableau des caractères non-token
+    char non_token[] = {' ', '\n', '\t', '\0', EOF};
+    
+    while(i < argc) {
 
         // printf("Iteration : %d\n", i);
         int arg_len = strlen(argv[i])+1;
@@ -617,7 +657,6 @@ int main(int argc, char **argv){
             inputCheck = 1; 
         }
 
-
         free(tmp);
         i++;
     }
@@ -625,78 +664,40 @@ int main(int argc, char **argv){
     //printf("Analyse des arguments reussie!\n");
 
     //Lecture de l'entrée
-    char* BUF = malloc(2050*sizeof(char));
-    if(BUF == NULL){
-        printf("Erreur buffer d'entrée\n");
-        exit(3);
-    }
-    BUF = fgets(BUF,2048,input);
-    while(BUF != NULL && *BUF != EOF) {
-       // printf("Ligne scannee : [%s] \n", BUF);
-        stringList tmpStrList = line2stringList(BUF);
-       // print_stringList(tmpStrList);
-        if(!run_line(tmpStrList, mem, output)){
-            printf("Ligne incorrecte\n");
+    char* BUF = malloc(2050*sizeof(char)); // pour \n et \0
+    if (BUF == NULL){ exit(1); }
+    
+    char* res = malloc(2050*sizeof(char)); // pour \n et \0
+    if (res == NULL){ exit(1); }
+    
+    while (res = fgets(BUF, 2048, input), res != NULL) {
+        
+        //traitement_chaine(BUF);
+        //printf(" > len = %ld\n", strlen(BUF));
+        
+        if (ligne_vide(BUF, non_token, 5) == 0) {
+            
+            stringList tmpStrList = line2stringList(BUF, non_token, 5);
+            
+            if ( !run_line(tmpStrList, mem, output) ){
+                fprintf(stderr, "Ligne incorrecte\n");
+            }
+            
+            supprimer_stringList(tmpStrList);
         }
-        BUF = fgets(BUF,2048,input);
-        supprimer_stringList(tmpStrList);
+        //printf("\n");
     }
-
+    
+    free(BUF);
     supprimer_varList(*mem);
+    
     free(mem);
 
-    fclose(input);
-    fclose(output);
+    if (input != NULL) fclose(input);
     
+    if (output != NULL) fclose(output);
+    
+    return 0;
 
-
-
- 
-
-    // 88888888888                888             
-    //     888                    888             
-    //     888                    888             
-    //     888   .d88b.  .d8888b  888888 .d8888b  
-    //     888  d8P  Y8b 88K      888    88K      
-    //     888  88888888 "Y8888b. 888    "Y8888b. 
-    //     888  Y8b.          X88 Y88b.       X88 
-    //     888   "Y8888   88888P'  "Y888  88888P' 
-
-
-    /*
-    char* testLine2String="Test = 3 * 4\n";
-    stringList test1=line2stringList(testLine2String);
-    print_stringList(test1);
-
-
-    printf("Est une ligne correcte: %d\n", run_line(test1, mem, NULL));
-
-
-    char* testLine2String2="Test = Test * 3\n";
-    stringList test2=line2stringList(testLine2String2);
-    print_stringList(test2);
-
-    printf("Est une ligne correcte: %d\n", run_line(test2, mem, NULL));
-
-    //printVarList(*mem);
-    */
-
-    /*
-    char* testLine2String3="A = 2 * 85\n";
-    stringList test3=line2stringList(testLine2String3);
-    print_stringList(test3);
-
-    printf("Est une ligne correcte: %d\n", run_line(test3, mem, NULL));
-
-    //printUnbound(finds_in(*mem, "Test")->value, 0);
-
-    char* testLine2String4="print A * A\n";
-    stringList test4=line2stringList(testLine2String4);
-    print_stringList(test4);
-
-    printf("Est une ligne correcte: %d\n", run_line(test4, mem, NULL));
-
-    printVarList(*mem);
-    */
 
 }
