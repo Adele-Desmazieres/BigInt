@@ -640,20 +640,20 @@ int main(int argc, char **argv){
         // printf("Iteration : %d\n", i);
         int arg_len = strlen(argv[i])+1;
         char* tmp = malloc(sizeof(char)*arg_len);
-        if(tmp == NULL) perror("Malloc main incorrect");
+        if (tmp == NULL) exit(1);
         tmp = strcpy(tmp, argv[i]);
 
         //Selecteur de fichier de sortie
-        if(strcmp(tmp,"-o") == 0 && i+1<argc && !outputCheck){
+        if (strcmp(tmp,"-o") == 0 && i+1<argc && !outputCheck){
             output=fopen(argv[i+1],"w");
-            if(output == NULL) perror("Fichier de sortie incorrect"); 
+            if(output == NULL) fprintf(stderr, "Fichier de sortie incorrect"); 
             outputCheck = 1;
         }
         //Selecteur de fichier d'entrée
-        if(strcmp(tmp,"-i") == 0 && i+1<argc && !inputCheck){
+        if (strcmp(tmp,"-i") == 0 && i+1<argc && !inputCheck){
             // printf("-A\n[%s]\n", argv[i+1]);
             input = fopen(argv[i+1],"r");
-            if(input == NULL) perror("Fichier d'entrée incorrect");
+            if(input == NULL) fprintf(stderr, "Fichier d'entrée incorrect");
             inputCheck = 1; 
         }
 
