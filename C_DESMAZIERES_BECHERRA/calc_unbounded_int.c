@@ -627,13 +627,13 @@ int main(int argc, char **argv){
     FILE* output = NULL;
     FILE* input = stdin;
 
+    // tableau des caractères non-token
+    char non_token[] = {' ', '\n', '\t', '\0', EOF};
+    
     //Lecture des arguments
     int i=1;
     int inputCheck = 0;
     int outputCheck = 0;
-    
-    // tableau des caractères non-token
-    char non_token[] = {' ', '\n', '\t', '\0', EOF};
     
     while(i < argc) {
 
@@ -661,7 +661,6 @@ int main(int argc, char **argv){
         i++;
     }
 
-    //printf("Analyse des arguments reussie!\n");
 
     //Lecture de l'entrée
     char* BUF = malloc(2050*sizeof(char)); // pour \n et \0
@@ -685,7 +684,6 @@ int main(int argc, char **argv){
             
             supprimer_stringList(tmpStrList);
         }
-        //printf("\n");
     }
     
     free(BUF);
